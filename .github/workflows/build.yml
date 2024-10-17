@@ -51,6 +51,8 @@ jobs:
         git config --global user.name "${{ github.actor }}"
 
     - name: Create Git tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         VERSION="${{ env.VERSION }}"
         TAG="v${VERSION}"
@@ -59,7 +61,7 @@ jobs:
           exit 1
         fi
         git tag -a "$TAG" -m "Release $TAG"
-        git push origin "$TAG"
+        git push https://x-access-token:${GITHUB_TOKEN}@github.com/l1ratch/WhitelistByNicknames.git "$TAG"
 
   release:
     if: "!contains(github.event.head_commit.message, 'nobuild')"
