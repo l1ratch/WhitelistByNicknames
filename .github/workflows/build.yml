@@ -23,14 +23,19 @@ jobs:
     - name: Build with Maven
       run: mvn clean package
 
-    - name: Extract version from pom.xml
-      id: extract_version
-      run: echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+    - name: List target directory
+      run: ls -la target
 
     - name: Rename JAR file
       run: |
         VERSION="${{ env.VERSION }}"
-        mv target/*.jar target/WhitelistByNicknames-${VERSION}.jar
+        JAR_FILE=$(ls target/*.jar | head -n 1)
+        if [ -f "$JAR_FILE" ]; then
+          mv "$JAR_FILE" "target/WhitelistByNicknames-${VERSION}.jar"
+        else
+          echo "JAR file not found!"
+          exit 1
+        fi
 
     - name: Create Git tag
       run: |
@@ -50,7 +55,7 @@ jobs:
     - name: Set up JDK 1.8
       uses: actions/setup-java@v3
       with:
-        java-version: '8.0.382+5' # Указать ту же версию Java 8, что и в сборке
+        java-version: '8.0.382+5'
         distribution: 'adopt'
 
     - name: Extract version from pom.xml
