@@ -35,7 +35,6 @@ jobs:
         VERSION="${{ env.VERSION }}"
         JAR_FILE=$(ls target/*.jar | head -n 1)
         if [ -f "$JAR_FILE" ]; then
-          # Проверяем, существует ли файл с таким же именем
           if [ -f "target/WhitelistByNicknames-${VERSION}.jar" ]; then
             echo "File target/WhitelistByNicknames-${VERSION}.jar already exists. Skipping rename."
           else
@@ -48,8 +47,8 @@ jobs:
 
     - name: Set up Git user
       run: |
-        git config --global user.email "your-email@example.com"
-        git config --global user.name "Your Name"
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git config --global user.name "${{ github.actor }}"
 
     - name: Create Git tag
       run: |
@@ -60,7 +59,7 @@ jobs:
           exit 1
         fi
         git tag -a "$TAG" -m "Release $TAG"
-        git push origin "$TAG"
+        git push origin "$TAG" # Использует GITHUB_TOKEN
 
   release:
     if: "!contains(github.event.head_commit.message, 'nobuild')" # Пропустить, если сообщение коммита содержит 'nobuild'
