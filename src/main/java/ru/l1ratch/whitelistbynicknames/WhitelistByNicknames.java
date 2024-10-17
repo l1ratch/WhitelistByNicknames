@@ -9,6 +9,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -23,6 +26,8 @@ public class WhitelistByNicknames extends JavaPlugin implements Listener, Comman
     private List<String> whitelistedPlayers;
     private boolean whitelistEnabled;
     private boolean loggingEnabled;
+    private boolean botEnabled;
+    private TelegramBotHandler telegramBot;
     private File configFile;
 
     @Override
@@ -33,13 +38,39 @@ public class WhitelistByNicknames extends JavaPlugin implements Listener, Comman
         this.whitelistedPlayers = new ArrayList<>(getConfig().getStringList("whitelist"));
         this.whitelistEnabled = getConfig().getBoolean("whitelistEnabled", true);
         this.loggingEnabled = getConfig().getBoolean("loggingEnabled", true);
+        this.botEnabled = getConfig().getBoolean("botEnabled", false);
         this.configFile = new File(getDataFolder(), "config.yml");
+
+        if (botEnabled) {
+            initTelegramBot();
+        }
+
         getLogger().info("WhitelistByNicknames плагин включен.");
     }
 
     @Override
     public void onDisable() {
         getLogger().info("WhitelistByNicknames плагин выключен.");
+    }
+
+    private void initTelegramBot() {
+        String botToken = getConfig().getString("botToken");
+        String botUsername = getConfig().getString("botUsername");
+        List<Long> allowedUsers = getConfig().getLongList("allowedUsers");
+
+        if (botToken == null || botUsername == null) {
+            getLogger().warning("Telegram бот не настроен. Проверьте конфигурацию.");
+            return;
+        }
+
+        try {
+            TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+            telegramBot = new TelegramBotHandler(this, botToken, botUsername, allowedUsers);
+            botsApi.registerBot(telegramBot);
+            getLogger().info("Telegram бот успешно инициализирован.");
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     @EventHandler
@@ -58,7 +89,11 @@ public class WhitelistByNicknames extends JavaPlugin implements Listener, Comman
         }
     }
 
-    private void logPlayerLogin(String playerName, String playerIP) {
+    public void logPlayerLogin(String playerName, String playerIP) {
+        if (!loggingEnabled) {
+            return; // Логирование отключено, пропускаем запись лога
+        }
+
         String logDir = getDataFolder() + "/logs/";
         File dir = new File(logDir);
         if (!dir.exists()) {
@@ -75,6 +110,30 @@ public class WhitelistByNicknames extends JavaPlugin implements Listener, Comman
         } catch (IOException e) {
             getLogger().warning("Не удалось записать лог: " + e.getMessage());
         }
+    }
+
+    public List<String> getWhitelistedPlayers() {
+        return whitelistedPlayers;
+    }
+
+    public void addPlayerToWhitelist(String playerName) {
+        if (!whitelistedPlayers.contains(playerName)) {
+            whitelistedPlayers.add(playerName);
+            getConfig().set("whitelist", whitelistedPlayers);
+            saveConfig();
+        }
+    }
+
+    public void removePlayerFromWhitelist(String playerName) {
+        whitelistedPlayers.remove(playerName);
+        getConfig().set("whitelist", whitelistedPlayers);
+        saveConfig();
+    }
+
+    public void setWhitelistEnabled(boolean enabled) {
+        this.whitelistEnabled = enabled;
+        getConfig().set("whitelistEnabled", enabled);
+        saveConfig();
     }
 
     @Override
@@ -95,68 +154,38 @@ public class WhitelistByNicknames extends JavaPlugin implements Listener, Comman
                     sender.sendMessage(ChatColor.RED + "Использование: /wlbn add <nick>");
                     return true;
                 }
-                addPlayerToWhitelist(args[1], sender);
+                addPlayerToWhitelist(args[1]);
+                sender.sendMessage(ChatColor.GREEN + "Игрок " + args[1] + " добавлен в белый список.");
                 break;
             case "del":
                 if (args.length != 2) {
                     sender.sendMessage(ChatColor.RED + "Использование: /wlbn del <nick>");
                     return true;
                 }
-                removePlayerFromWhitelist(args[1], sender);
+                removePlayerFromWhitelist(args[1]);
+                sender.sendMessage(ChatColor.GREEN + "Игрок " + args[1] + " удален из белого списка.");
                 break;
             case "list":
                 sender.sendMessage(ChatColor.GREEN + "Белый список: " + String.join(", ", whitelistedPlayers));
                 break;
             case "on":
-                whitelistEnabled = true;
-                getConfig().set("whitelistEnabled", true);
-                saveConfig();
+                setWhitelistEnabled(true);
                 sender.sendMessage(ChatColor.GREEN + "Белый список включен.");
                 break;
             case "off":
-                whitelistEnabled = false;
-                getConfig().set("whitelistEnabled", false);
-                saveConfig();
+                setWhitelistEnabled(false);
                 sender.sendMessage(ChatColor.GREEN + "Белый список выключен.");
                 break;
             case "log":
-                toggleLogging(sender);
+                loggingEnabled = !loggingEnabled;
+                getConfig().set("loggingEnabled", loggingEnabled);
+                saveConfig();
+                String status = loggingEnabled ? "включено" : "выключено";
+                sender.sendMessage(ChatColor.GREEN + "Логирование " + status + ".");
                 break;
             default:
                 sender.sendMessage(ChatColor.RED + "Неизвестная команда.");
         }
         return true;
-    }
-
-    private void addPlayerToWhitelist(String playerName, CommandSender sender) {
-        if (whitelistedPlayers.contains(playerName)) {
-            sender.sendMessage(ChatColor.YELLOW + "Игрок уже в белом списке.");
-            return;
-        }
-
-        whitelistedPlayers.add(playerName);
-        getConfig().set("whitelist", whitelistedPlayers);
-        saveConfig();
-        sender.sendMessage(ChatColor.GREEN + "Игрок " + playerName + " добавлен в белый список.");
-    }
-
-    private void removePlayerFromWhitelist(String playerName, CommandSender sender) {
-        if (!whitelistedPlayers.contains(playerName)) {
-            sender.sendMessage(ChatColor.YELLOW + "Игрок не найден в белом списке.");
-            return;
-        }
-
-        whitelistedPlayers.remove(playerName);
-        getConfig().set("whitelist", whitelistedPlayers);
-        saveConfig();
-        sender.sendMessage(ChatColor.GREEN + "Игрок " + playerName + " удален из белого списка.");
-    }
-
-    private void toggleLogging(CommandSender sender) {
-        loggingEnabled = !loggingEnabled;
-        getConfig().set("loggingEnabled", loggingEnabled);
-        saveConfig();
-        String status = loggingEnabled ? "включено" : "выключено";
-        sender.sendMessage(ChatColor.GREEN + "Логирование " + status + ".");
     }
 }

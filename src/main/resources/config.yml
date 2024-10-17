@@ -1,5 +1,9 @@
 whitelistEnabled: true
 loggingEnabled: true
+botEnabled: false
+botToken: "YOUR_BOT_TOKEN"
+botUsername: "YOUR_BOT_USERNAME"
+allowedUsers: [] # Укажите ID пользователей, которым разрешен доступ. Если пусто, доступ открыт всем.
 whitelist: []
 messages:
   notWhitelisted: "&cВы не в белом списке."
