@@ -35,7 +35,12 @@ jobs:
         VERSION="${{ env.VERSION }}"
         JAR_FILE=$(ls target/*.jar | head -n 1)
         if [ -f "$JAR_FILE" ]; then
-          mv "$JAR_FILE" "target/WhitelistByNicknames-${VERSION}.jar"
+          # Проверяем, существует ли файл с таким же именем
+          if [ -f "target/WhitelistByNicknames-${VERSION}.jar" ]; then
+            echo "File target/WhitelistByNicknames-${VERSION}.jar already exists. Skipping rename."
+          else
+            mv "$JAR_FILE" "target/WhitelistByNicknames-${VERSION}.jar"
+          fi
         else
           echo "JAR file not found!"
           exit 1
@@ -85,7 +90,7 @@ jobs:
     - name: Create Release
       uses: actions/create-release@v3
       env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: "v${{ env.VERSION }}"
         release_name: "Release v${{ env.VERSION }}"
