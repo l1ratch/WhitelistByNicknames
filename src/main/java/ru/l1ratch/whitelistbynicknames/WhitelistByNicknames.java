@@ -1,0 +1,162 @@
+package ru.l1ratch.whitelistbynicknames;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+public class WhitelistByNicknames extends JavaPlugin implements Listener, CommandExecutor {
+    private List<String> whitelistedPlayers;
+    private boolean whitelistEnabled;
+    private boolean loggingEnabled;
+    private File configFile;
+
+    @Override
+    public void onEnable() {
+        this.saveDefaultConfig();
+        Bukkit.getPluginManager().registerEvents(this, this);
+        this.getCommand("wlbn").setExecutor(this);
+        this.whitelistedPlayers = new ArrayList<>(getConfig().getStringList("whitelist"));
+        this.whitelistEnabled = getConfig().getBoolean("whitelistEnabled", true);
+        this.loggingEnabled = getConfig().getBoolean("loggingEnabled", true);
+        this.configFile = new File(getDataFolder(), "config.yml");
+        getLogger().info("WhitelistByNicknames плагин включен.");
+    }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("WhitelistByNicknames плагин выключен.");
+    }
+
+    @EventHandler
+    public void onPlayerLogin(PlayerLoginEvent event) {
+        if (!whitelistEnabled) return;
+
+        String playerName = event.getPlayer().getName();
+        String playerIP = event.getAddress().getHostAddress();
+        if (!whitelistedPlayers.contains(playerName)) {
+            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.notWhitelisted", "&cВы не в белом списке.")));
+            return;
+        }
+
+        if (loggingEnabled) {
+            logPlayerLogin(playerName, playerIP);
+        }
+    }
+
+    private void logPlayerLogin(String playerName, String playerIP) {
+        String logDir = getDataFolder() + "/logs/";
+        File dir = new File(logDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String dateStr = new SimpleDateFormat("dd-MM-yy").format(new Date());
+        String logFilePath = logDir + "logs_" + dateStr + ".txt";
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFilePath, true))) {
+            String logEntry = String.format("%s | %s | %s", playerName, new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date()), playerIP);
+            writer.write(logEntry);
+            writer.newLine();
+        } catch (IOException e) {
+            getLogger().warning("Не удалось записать лог: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("wlbn.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды.");
+            return true;
+        }
+
+        if (args.length < 1) {
+            sender.sendMessage(ChatColor.RED + "Использование: /wlbn add <nick> | del <nick> | list | on | off | log");
+            return true;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "add":
+                if (args.length != 2) {
+                    sender.sendMessage(ChatColor.RED + "Использование: /wlbn add <nick>");
+                    return true;
+                }
+                addPlayerToWhitelist(args[1], sender);
+                break;
+            case "del":
+                if (args.length != 2) {
+                    sender.sendMessage(ChatColor.RED + "Использование: /wlbn del <nick>");
+                    return true;
+                }
+                removePlayerFromWhitelist(args[1], sender);
+                break;
+            case "list":
+                sender.sendMessage(ChatColor.GREEN + "Белый список: " + String.join(", ", whitelistedPlayers));
+                break;
+            case "on":
+                whitelistEnabled = true;
+                getConfig().set("whitelistEnabled", true);
+                saveConfig();
+                sender.sendMessage(ChatColor.GREEN + "Белый список включен.");
+                break;
+            case "off":
+                whitelistEnabled = false;
+                getConfig().set("whitelistEnabled", false);
+                saveConfig();
+                sender.sendMessage(ChatColor.GREEN + "Белый список выключен.");
+                break;
+            case "log":
+                toggleLogging(sender);
+                break;
+            default:
+                sender.sendMessage(ChatColor.RED + "Неизвестная команда.");
+        }
+        return true;
+    }
+
+    private void addPlayerToWhitelist(String playerName, CommandSender sender) {
+        if (whitelistedPlayers.contains(playerName)) {
+            sender.sendMessage(ChatColor.YELLOW + "Игрок уже в белом списке.");
+            return;
+        }
+
+        whitelistedPlayers.add(playerName);
+        getConfig().set("whitelist", whitelistedPlayers);
+        saveConfig();
+        sender.sendMessage(ChatColor.GREEN + "Игрок " + playerName + " добавлен в белый список.");
+    }
+
+    private void removePlayerFromWhitelist(String playerName, CommandSender sender) {
+        if (!whitelistedPlayers.contains(playerName)) {
+            sender.sendMessage(ChatColor.YELLOW + "Игрок не найден в белом списке.");
+            return;
+        }
+
+        whitelistedPlayers.remove(playerName);
+        getConfig().set("whitelist", whitelistedPlayers);
+        saveConfig();
+        sender.sendMessage(ChatColor.GREEN + "Игрок " + playerName + " удален из белого списка.");
+    }
+
+    private void toggleLogging(CommandSender sender) {
+        loggingEnabled = !loggingEnabled;
+        getConfig().set("loggingEnabled", loggingEnabled);
+        saveConfig();
+        String status = loggingEnabled ? "включено" : "выключено";
+        sender.sendMessage(ChatColor.GREEN + "Логирование " + status + ".");
+    }
+}

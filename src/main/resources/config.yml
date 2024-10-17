@@ -1,0 +1,5 @@
+whitelistEnabled: true
+loggingEnabled: true
+whitelist: []
+messages:
+  notWhitelisted: "&cВы не в белом списке."

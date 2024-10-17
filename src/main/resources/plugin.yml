@@ -1,0 +1,14 @@
+name: WhitelistByNicknames
+version: '${project.version}'
+main: ru.l1ratch.whitelistbynicknames.WhitelistByNicknames
+api-version: '1.13'
+load: STARTUP
+commands:
+  wlbn:
+    description: Команды для управления белым списком по никам
+    usage: /wlbn add <nick> | del <nick> | list | on | off
+    permission: wlbn.admin
+permissions:
+  wlbn.admin:
+    description: Дает доступ к командам плагина whitelistbynicknames
+    default: op
