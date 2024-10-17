@@ -53,8 +53,6 @@ jobs:
       run: sudo apt-get install gh
 
     - name: Create Git tag
-      env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
       run: |
         VERSION="${{ env.VERSION }}"
         TAG="v${VERSION}"
@@ -62,5 +60,6 @@ jobs:
           echo "Version is empty, cannot create tag."
           exit 1
         fi
-        echo $GITHUB_TOKEN | gh auth login --with-token
-        gh release create "$TAG" --title "Release $TAG" --notes "Release notes for $TAG" --generate-notes target/WhitelistByNicknames-${VERSION}.jar
+        gh release create "$TAG" --title "Release $TAG" --notes "Release notes for $TAG" target/WhitelistByNicknames-${VERSION}.jar
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }} # Это не нужно в `gh auth login`
