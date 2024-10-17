@@ -90,7 +90,7 @@ jobs:
     - name: Create Release
       uses: actions/create-release@v3
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
       with:
         tag_name: "v${{ env.VERSION }}"
         release_name: "Release v${{ env.VERSION }}"
