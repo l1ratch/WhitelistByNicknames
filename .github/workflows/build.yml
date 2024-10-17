@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
@@ -30,7 +30,7 @@ jobs:
     - name: Rename JAR file
       run: |
         VERSION="${{ env.VERSION }}"
-        mv target/*.jar target/pluginname-${VERSION}.jar
+        mv target/*.jar target/WhitelistByNicknames-${VERSION}.jar
 
     - name: Create Git tag
       run: |
@@ -61,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: pluginname-${{ env.VERSION }}.jar
-        path: target/pluginname-${{ env.VERSION }}.jar
+        path: target/WhitelistByNicknames-${{ env.VERSION }}.jar
 
     - name: Create Release
       uses: actions/create-release@v3
@@ -73,4 +73,4 @@ jobs:
         body: ${{ github.event.head_commit.message }}
         draft: false
         prerelease: ${{ contains(github.event.head_commit.message, 'pre-release') }}
-        files: target/pluginname-${{ env.VERSION }}.jar
+        files: target/WhitelistByNicknames-${{ env.VERSION }}.jar
