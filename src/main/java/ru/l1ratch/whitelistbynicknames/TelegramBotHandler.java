@@ -14,6 +14,8 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
     private final String botToken;
     private final String botUsername;
     private final List<Long> allowedUsers;
+    private static final int MAX_RETRIES = 5;
+    private static final int RETRY_DELAY_MS = 5000; // 5 секунд
 
     public TelegramBotHandler(WhitelistByNicknames plugin, String botToken, String botUsername, List<Long> allowedUsers) {
         this.plugin = plugin;
@@ -31,59 +33,73 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
 
             // Проверка доступа: если список allowedUsers пуст, доступ разрешен всем
             if (allowedUsers != null && !allowedUsers.isEmpty() && !allowedUsers.contains(userId)) {
-                sendMessage(chatId, "У вас нет прав для управления белым списком.");
+                sendMessageWithRetry(chatId, "У вас нет прав для управления белым списком.");
                 return;
             }
 
             String[] args = message.getText().split(" ");
             if (args.length < 1) {
-                sendMessage(chatId, "Используйте команды: /add <nick>, /del <nick>, /on, /off, /list");
+                sendMessageWithRetry(chatId, "Используйте команды: /add <nick>, /del <nick>, /on, /off, /list");
                 return;
             }
 
             switch (args[0].toLowerCase()) {
                 case "/add":
                     if (args.length != 2) {
-                        sendMessage(chatId, "Используйте: /add <nick>");
+                        sendMessageWithRetry(chatId, "Используйте: /add <nick>");
                     } else {
                         plugin.addPlayerToWhitelist(args[1]);
-                        sendMessage(chatId, "Игрок " + args[1] + " добавлен в белый список.");
+                        sendMessageWithRetry(chatId, "Игрок " + args[1] + " добавлен в белый список.");
                     }
                     break;
                 case "/del":
                     if (args.length != 2) {
-                        sendMessage(chatId, "Используйте: /del <nick>");
+                        sendMessageWithRetry(chatId, "Используйте: /del <nick>");
                     } else {
                         plugin.removePlayerFromWhitelist(args[1]);
-                        sendMessage(chatId, "Игрок " + args[1] + " удален из белого списка.");
+                        sendMessageWithRetry(chatId, "Игрок " + args[1] + " удален из белого списка.");
                     }
                     break;
                 case "/on":
                     plugin.setWhitelistEnabled(true);
-                    sendMessage(chatId, "Белый список включен.");
+                    sendMessageWithRetry(chatId, "Белый список включен.");
                     break;
                 case "/off":
                     plugin.setWhitelistEnabled(false);
-                    sendMessage(chatId, "Белый список выключен.");
+                    sendMessageWithRetry(chatId, "Белый список выключен.");
                     break;
                 case "/list":
                     String whitelist = String.join(", ", plugin.getWhitelistedPlayers());
-                    sendMessage(chatId, "Белый список: " + whitelist);
+                    sendMessageWithRetry(chatId, "Белый список: " + whitelist);
                     break;
                 default:
-                    sendMessage(chatId, "Неизвестная команда. Используйте: /add <nick>, /del <nick>, /on, /off, /list");
+                    sendMessageWithRetry(chatId, "Неизвестная команда. Используйте: /add <nick>, /del <nick>, /on, /off, /list");
             }
         }
     }
 
-    private void sendMessage(String chatId, String text) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(text);
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+    private void sendMessageWithRetry(String chatId, String text) {
+        int attempt = 0;
+        while (attempt < MAX_RETRIES) {
+            try {
+                SendMessage message = new SendMessage();
+                message.setChatId(chatId);
+                message.setText(text);
+                execute(message);
+                return; // Успешно отправлено, выход из метода
+            } catch (TelegramApiException e) {
+                attempt++;
+                plugin.getLogger().warning("Не удалось отправить сообщение в Telegram (попытка " + attempt + " из " + MAX_RETRIES + "): " + e.getMessage());
+                if (attempt >= MAX_RETRIES) {
+                    plugin.getLogger().severe("Превышено количество попыток отправки сообщения в Telegram. Сообщение не было отправлено.");
+                    break;
+                }
+                try {
+                    Thread.sleep(RETRY_DELAY_MS); // Подождать перед следующей попыткой
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 
