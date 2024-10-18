@@ -1,0 +1,65 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8.0.382+5'
+        distribution: 'adopt'
+
+    - name: Extract version from pom.xml
+      id: extract_version
+      run: echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+    - name: Build with Maven
+      run: mvn clean package
+
+    - name: List target directory
+      run: ls -la target
+
+    - name: Rename JAR file
+      run: |
+        VERSION="${{ env.VERSION }}"
+        JAR_FILE=$(ls target/*.jar | head -n 1)
+        if [ -f "$JAR_FILE" ]; then
+          if [ -f "target/WhitelistByNicknames-${VERSION}.jar" ]; then
+            echo "File target/WhitelistByNicknames-${VERSION}.jar already exists. Skipping rename."
+          else
+            mv "$JAR_FILE" "target/WhitelistByNicknames-${VERSION}.jar"
+          fi
+        else
+          echo "JAR file not found!"
+          exit 1
+        fi
+
+    - name: Set up Git user
+      run: |
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git config --global user.name "${{ github.actor }}"
+
+    - name: Install GitHub CLI
+      run: sudo apt-get install gh
+
+    - name: Create Git tag
+      run: |
+        VERSION="${{ env.VERSION }}"
+        TAG="v${VERSION}"
+        if [ -z "$VERSION" ]; then
+          echo "Version is empty, cannot create tag."
+          exit 1
+        fi
+        gh release create "$TAG" --title "Release $TAG" --notes "Release notes for $TAG" target/WhitelistByNicknames-${VERSION}.jar
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }} # Это не нужно в `gh auth login`
