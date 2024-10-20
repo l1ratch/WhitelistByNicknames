@@ -4,7 +4,7 @@
   <groupId>ru.l1ratch</groupId>
   <artifactId>WhitelistByNicknames</artifactId>
   <name>WhitelistByNicknames</name>
-  <version>0.1.3</version>
+  <version>0.1.4</version>
   <build>
     <resources>
       <resource>

@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class TelegramBotHandler extends TelegramLongPollingBot {
     private final WhitelistByNicknames plugin;
@@ -95,7 +96,8 @@ public class TelegramBotHandler extends TelegramLongPollingBot {
                     break;
                 }
                 try {
-                    Thread.sleep(RETRY_DELAY_MS); // Подождать перед следующей попыткой
+                    // Подождать перед следующей попыткой
+                    TimeUnit.MILLISECONDS.sleep(RETRY_DELAY_MS);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
