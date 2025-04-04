@@ -6,7 +6,7 @@ load: STARTUP
 commands:
   wlbn:
     description: Команды для управления белым списком по никам
-    usage: /wlbn add <nick> | del <nick> | list | on | off | log
+    usage: /wlbn add <nick> | del <nick> | list | on | off | log | uuidcheck <on|off> | resetuuid <nick>
     permission: wlbn.admin
 permissions:
   wlbn.admin:
