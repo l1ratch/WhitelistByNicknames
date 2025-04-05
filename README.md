@@ -7,15 +7,25 @@ WhitelistByNicknames - Плагин на удобный Whitelist, работа�
 
 ## Конфигурация плагина
 ```
+# ОБЩИЕ НАСТРОЙКИ
 whitelistEnabled: true
 loggingEnabled: true
+uuidCheckEnabled: false # Добавлена настройка для включения/выключения проверки UUID
+
+# НАСТРОЙКИ БОТА (telegram)
 botEnabled: false
 botToken: "YOUR_BOT_TOKEN"
 botUsername: "YOUR_BOT_USERNAME"
 allowedUsers: [] # Укажите ID пользователей, которым разрешен доступ. Если пусто, доступ открыт всем.
+
+# СПИСКИ
 whitelist: []
+whitelistedUUIDs: {} # Здесь будут храниться UUID игроков из белого списка
+
+# НАСТРОЙКА СООБЩЕНИЙ
 messages:
   notWhitelisted: "&cВы не в белом списке."
+  uuidMismatch: "&cВаш UUID изменился. Обратитесь к администратору." # Сообщение при несовпадении UUID
 ```
 
 ## Команды и права
@@ -25,6 +35,8 @@ messages:
 - `/wlbn on | off` - Включить/Выключить белый список
 - `/wlbn list` - Вывести список игроков из белого списка
 - `/wlbn log` - Вкл/Выкл логирование входа(toggle command)
+- `/wlbn uuidcheck on | off` - Вкл/Выкл логирование входа(toggle command)
+- `/wlbn resetuuid 'nick'` - Вкл/Выкл логирование входа(toggle command)
 
 ### Права:
 - `wlbn.admin` - Дает доступ к командам плагина whitelistbynicknames
