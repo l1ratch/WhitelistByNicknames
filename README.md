@@ -35,8 +35,8 @@ messages:
 - `/wlbn on | off` - Включить/Выключить белый список
 - `/wlbn list` - Вывести список игроков из белого списка
 - `/wlbn log` - Вкл/Выкл логирование входа(toggle command)
-- `/wlbn uuidcheck on | off` - Вкл/Выкл логирование входа(toggle command)
-- `/wlbn resetuuid 'nick'` - Вкл/Выкл логирование входа(toggle command)
+- `/wlbn uuidcheck on | off` - Вкл/Выкл проверку по UUID
+- `/wlbn resetuuid 'nick'` - Сбросить UUID игрока
 
 ### Права:
 - `wlbn.admin` - Дает доступ к командам плагина whitelistbynicknames
